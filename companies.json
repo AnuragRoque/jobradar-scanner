@@ -1,0 +1,24 @@
+{
+  "companies": [
+    {
+      "name": "Pinterest",
+      "ats": "greenhouse",
+      "slug": "pinterest",
+      "careers_url": "https://www.pinterestcareers.com/jobs/"
+    },
+    {
+      "name": "Anthropic",
+      "ats": "greenhouse",
+      "slug": "anthropic",
+      "careers_url": "https://job-boards.greenhouse.io/anthropic"
+    },
+    {
+      "name": "NVIDIA",
+      "ats": "workday",
+      "search": "India",
+      "url": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs",
+      "apply_base": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+      "careers_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite"
+    }
+  ]
+}

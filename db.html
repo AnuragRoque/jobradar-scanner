@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobRadar · Sources</title>
+<style>
+  :root{
+    --ink:#0B1017; --panel:#131B26; --panel2:#1A2432; --rule:#26344A;
+    --text:#E8EFF7; --dim:#7B8CA1; --dimmer:#4E5D70;
+    --amber:#FFB13D; --jade:#46D6A4; --coral:#F0705C; --violet:#8B7BF0;
+    --mono:ui-monospace,"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink); color:var(--text); font-family:var(--mono);
+    font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:20; background:var(--ink);
+    border-bottom:1px solid var(--rule); padding:14px 20px;
+  }
+  .top{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap}
+  .wordmark{
+    font-size:15px; font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--text);
+  }
+  .wordmark span{color:var(--amber)}
+  .crumb{color:var(--dim); font-size:11px; letter-spacing:.12em; text-transform:uppercase}
+  .spacer{flex:1}
+  .btn{
+    font-family:var(--mono); font-size:11px; letter-spacing:.09em; text-decoration:none;
+    text-transform:uppercase; background:transparent; color:var(--dim);
+    border:1px solid var(--rule); border-radius:2px; padding:6px 11px;
+    cursor:pointer; transition:border-color .15s, color .15s; display:inline-block;
+  }
+  .btn:hover{color:var(--text); border-color:var(--dim)}
+  .btn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+
+  main{padding:20px 20px 80px; max-width:1120px}
+
+  /* ---------- summary strip ---------- */
+  .summary{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px}
+  .stat{
+    background:var(--panel); border:1px solid var(--rule); border-radius:3px;
+    padding:11px 16px; min-width:118px;
+  }
+  .stat .n{font-size:22px; font-weight:600; color:var(--text); letter-spacing:.02em}
+  .stat .l{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dimmer); margin-top:3px}
+  .stat.amber .n{color:var(--amber)} .stat.jade .n{color:var(--jade)} .stat.violet .n{color:var(--violet)}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap}
+  #q{
+    font-family:var(--mono); font-size:11px; background:var(--panel);
+    border:1px solid var(--rule); color:var(--text); border-radius:2px;
+    padding:6px 10px; width:220px;
+  }
+  #q:focus{outline:none; border-color:var(--amber)}
+  .count{color:var(--dim); font-size:11px}
+
+  /* ---------- table ---------- */
+  .tablewrap{overflow-x:auto; border:1px solid var(--rule); border-radius:3px}
+  table{border-collapse:collapse; width:100%; min-width:820px}
+  thead th{
+    text-align:left; font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dimmer); font-weight:500; padding:11px 14px; background:var(--panel);
+    border-bottom:1px solid var(--rule); white-space:nowrap; position:sticky; top:0;
+  }
+  th.sortable{cursor:pointer; user-select:none}
+  th.sortable:hover{color:var(--dim)}
+  th.sortable.active{color:var(--amber)}
+  th .arrow{font-size:8px; margin-left:4px}
+  th.num,td.num{text-align:right; font-variant-numeric:tabular-nums}
+  tbody td{padding:11px 14px; border-bottom:1px solid #16202D; vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:#101823}
+  .co{color:var(--text); font-weight:500}
+  .co .fail{color:var(--coral); font-size:10px; margin-left:7px; letter-spacing:.06em; text-transform:uppercase}
+  .ats{font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim);
+       border:1px solid #22303F; border-radius:2px; padding:2px 7px}
+  td.num{color:var(--dim)}
+  td.num.zero{color:var(--dimmer)}
+  .live{color:var(--text)} .unseen b{color:var(--amber)} .applied b{color:var(--jade)}
+  .fit-hi{color:var(--jade)} .fit-mid{color:var(--amber)} .fit-lo{color:var(--dimmer)}
+  .open{
+    font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+    text-decoration:none; color:var(--dim); border:1px solid var(--rule); border-radius:2px;
+    padding:4px 9px; white-space:nowrap;
+  }
+  .open:hover{color:var(--text); border-color:var(--dim)}
+
+  .empty{padding:50px 20px; color:var(--dim); max-width:60ch}
+  .empty b{color:var(--text); font-weight:500; display:block; margin-bottom:8px}
+  .empty code{color:var(--amber)}
+
+  @media (max-width:640px){
+    .stat{flex:1; min-width:calc(50% - 5px)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div class="wordmark">Job<span>Radar</span></div>
+    <div class="crumb">Sources</div>
+    <div class="spacer"></div>
+    <a class="btn" href="/">&larr; Board</a>
+    <a class="btn" href="/profile">Profile</a>
+    <button class="btn" id="refresh">Poll now</button>
+  </div>
+</header>
+
+<main>
+  <div class="summary" id="summary"></div>
+
+  <div class="controls">
+    <input id="q" placeholder="filter companies">
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="sortable" data-k="name">Company <span class="arrow"></span></th>
+          <th class="sortable" data-k="ats">Platform <span class="arrow"></span></th>
+          <th class="sortable num" data-k="live">Live <span class="arrow"></span></th>
+          <th class="sortable num" data-k="unseen">Unseen <span class="arrow"></span></th>
+          <th class="sortable num" data-k="fresh24">24h <span class="arrow"></span></th>
+          <th class="sortable num" data-k="applied">Applied <span class="arrow"></span></th>
+          <th class="sortable num" data-k="top_fit">Top fit <span class="arrow"></span></th>
+          <th>Careers</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div id="empty"></div>
+</main>
+
+<script>
+let SOURCES = [], STATS = {}, FAILING = new Set(), META = {};
+let query = '', sortKey = 'live', sortDir = 'desc';
+
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ZERO = {total:0, live:0, unseen:0, fresh24:0, applied:0, saved:0, top_fit:0};
+
+/* Prefer the exact careers page we detected; otherwise reconstruct the public board URL. */
+function boardUrl(s){
+  if (s.careers_url) return s.careers_url;
+  const slug = s.slug;
+  switch (s.ats){
+    case 'greenhouse':      return `https://job-boards.greenhouse.io/${slug}`;
+    case 'lever':           return `https://jobs.lever.co/${slug}`;
+    case 'ashby':           return `https://jobs.ashbyhq.com/${slug}`;
+    case 'smartrecruiters': return `https://jobs.smartrecruiters.com/${slug}`;
+    case 'recruitee':       return `https://${slug}.recruitee.com`;
+    case 'workable':        return `https://apply.workable.com/${slug}`;
+    case 'workday':         return s.apply_base || s.url || '#';
+    default:                return '#';
+  }
+}
+
+function fitClass(f){ return f >= 4 ? 'fit-hi' : f >= 2 ? 'fit-mid' : 'fit-lo'; }
+
+function rowsData(){
+  const q = query.toLowerCase();
+  const list = SOURCES
+    .map(s => ({ src: s, name: s.name || s.slug || '?', ats: s.ats || '?',
+                 ...(STATS[s.name] || ZERO) }))
+    .filter(r => !q || r.name.toLowerCase().includes(q) || r.ats.toLowerCase().includes(q));
+
+  const dir = sortDir === 'asc' ? 1 : -1;
+  list.sort((a, b) => {
+    let d;
+    if (sortKey === 'name' || sortKey === 'ats')
+      d = String(a[sortKey]).localeCompare(String(b[sortKey]));
+    else d = (a[sortKey] || 0) - (b[sortKey] || 0);
+    if (d) return d * dir;
+    return String(a.name).localeCompare(String(b.name));   // stable tiebreak
+  });
+  return list;
+}
+
+function renderSummary(rows){
+  const t = rows.reduce((a, r) => ({
+    src: a.src + 1, live: a.live + r.live, unseen: a.unseen + r.unseen,
+    applied: a.applied + r.applied, saved: a.saved + r.saved,
+  }), {src:0, live:0, unseen:0, applied:0, saved:0});
+  const polled = META.last_fetch
+    ? Math.max(1, Math.round((Date.now() - new Date(META.last_fetch)) / 60000)) + 'm ago'
+    : 'never';
+  document.getElementById('summary').innerHTML = `
+    <div class="stat"><div class="n">${t.src}</div><div class="l">Sources</div></div>
+    <div class="stat"><div class="n">${t.live}</div><div class="l">Live jobs</div></div>
+    <div class="stat amber"><div class="n">${t.unseen}</div><div class="l">Unseen</div></div>
+    <div class="stat jade"><div class="n">${t.applied}</div><div class="l">Applied</div></div>
+    <div class="stat violet"><div class="n">${t.saved}</div><div class="l">Saved</div></div>
+    <div class="stat"><div class="n">${polled}</div><div class="l">Last poll</div></div>`;
+}
+
+function render(){
+  const rows = rowsData();
+  renderSummary(rows);
+  document.querySelectorAll('th.sortable').forEach(th => {
+    const active = th.dataset.k === sortKey;
+    th.classList.toggle('active', active);
+    th.querySelector('.arrow').textContent = active ? (sortDir === 'asc' ? '▲' : '▼') : '';
+  });
+  document.getElementById('count').textContent =
+    `${rows.length} source${rows.length === 1 ? '' : 's'}`;
+
+  const tbody = document.getElementById('rows');
+  const empty = document.getElementById('empty');
+  if (!rows.length){
+    tbody.innerHTML = '';
+    empty.innerHTML = SOURCES.length
+      ? `<div class="empty"><b>No sources match that filter.</b></div>`
+      : `<div class="empty"><b>No companies tracked yet.</b>
+         Add one from the board, or the terminal:
+         <br><br><code>python jobradar.py add https://jobs.lever.co/company</code></div>`;
+    return;
+  }
+  empty.innerHTML = '';
+  tbody.innerHTML = rows.map(r => {
+    const url = boardUrl(r.src);
+    const fit = r.top_fit ? `<span class="${fitClass(r.top_fit)}">${r.top_fit.toFixed(1)}</span>` : '<span class="fit-lo">–</span>';
+    const num = (v, cls) => `<td class="num ${v ? cls : 'zero'}">${v ? (cls ? `<b>${v}</b>` : v) : '·'}</td>`;
+    return `<tr>
+      <td class="co">${esc(r.name)}${FAILING.has(r.name) ? '<span class="fail">failing</span>' : ''}</td>
+      <td><span class="ats">${esc(r.ats)}</span></td>
+      <td class="num live">${r.live || '·'}</td>
+      ${num(r.unseen, 'unseen')}
+      <td class="num ${r.fresh24 ? '' : 'zero'}">${r.fresh24 || '·'}</td>
+      ${num(r.applied, 'applied')}
+      <td class="num">${fit}</td>
+      <td>${url && url !== '#'
+        ? `<a class="open" href="${esc(url)}" target="_blank" rel="noopener">Open ↗</a>`
+        : '<span class="fit-lo">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---------- interactions ---------- */
+document.querySelector('thead').addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if (!th) return;
+  const k = th.dataset.k;
+  if (sortKey === k) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = k; sortDir = (k === 'name' || k === 'ats') ? 'asc' : 'desc'; }
+  render();
+});
+document.getElementById('q').addEventListener('input', e => {
+  query = e.target.value.trim(); render();
+});
+document.getElementById('refresh').addEventListener('click', async e => {
+  e.target.textContent = 'Polling';
+  try { await fetch('/api/refresh', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}); }
+  catch(err){}
+  await load();
+  e.target.textContent = 'Poll now';
+});
+
+/* ---------- data ---------- */
+async function load(){
+  try{
+    const [src, st] = await Promise.all([
+      fetch('/api/sources').then(r => r.json()),
+      fetch('/api/stats').then(r => r.json()),
+    ]);
+    SOURCES = src.companies || [];
+    STATS = st.per_company || {};
+    META = st.meta || {};
+    FAILING = new Set((META.errors || []).map(e => e.company));
+  }catch(e){
+    document.getElementById('empty').innerHTML =
+      `<div class="empty"><b>Server not responding.</b>Start it with <code>python jobradar.py serve</code>.</div>`;
+    return;
+  }
+  render();
+}
+
+load();
+setInterval(load, 45000);
+</script>
+</body>
+</html>

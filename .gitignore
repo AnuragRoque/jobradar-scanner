@@ -39,3 +39,13 @@ htmlcov/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Personal — do NOT publish (PII / private docs)
+Anurag_Singh_AI_GenAI_Engineer.pdf
+*.pdf
+*resume*
+*cv*
+private/
+# Personal career targets — uncomment to keep private (note: referenced by README/usage)
+# dream-companies.txt
+# dream-targets.json

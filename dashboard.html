@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobRadar</title>
+<style>
+  :root{
+    --ink:#0B1017; --panel:#131B26; --panel2:#1A2432; --rule:#26344A;
+    --text:#E8EFF7; --dim:#7B8CA1; --dimmer:#4E5D70;
+    --amber:#FFB13D; --jade:#46D6A4; --coral:#F0705C; --violet:#8B7BF0;
+    --mono:ui-monospace,"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink); color:var(--text); font-family:var(--mono);
+    font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:20; background:var(--ink);
+    border-bottom:1px solid var(--rule); padding:14px 20px 0;
+  }
+  .top{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap}
+  .wordmark{
+    font-size:15px; font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--text);
+  }
+  .wordmark span{color:var(--amber)}
+  .clock{color:var(--dim); font-size:11px; letter-spacing:.08em}
+  .clock b{color:var(--jade); font-weight:500}
+  .spacer{flex:1}
+
+  .btn{
+    font-family:var(--mono); font-size:11px; letter-spacing:.09em;
+    text-transform:uppercase; background:transparent; color:var(--dim);
+    border:1px solid var(--rule); border-radius:2px; padding:6px 11px;
+    cursor:pointer; transition:border-color .15s, color .15s;
+    text-decoration:none; display:inline-block;
+  }
+  .btn:hover{color:var(--text); border-color:var(--dim)}
+  .btn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+  .btn.on{color:var(--ink); background:var(--amber); border-color:var(--amber)}
+
+  .addbar{display:flex; gap:8px; margin:12px 0 0; align-items:center}
+  .addbar input{
+    flex:1; max-width:520px; font-family:var(--mono); font-size:12px;
+    background:var(--panel); border:1px solid var(--rule); border-radius:2px;
+    color:var(--text); padding:7px 10px;
+  }
+  .addbar input::placeholder{color:var(--dimmer)}
+  .addbar input:focus{outline:none; border-color:var(--amber)}
+  .addmsg{font-size:11px; color:var(--dim)}
+  .addmsg.err{color:var(--coral)}
+  .addmsg.ok{color:var(--jade)}
+
+  .viewbar{
+    display:flex; margin:12px 0 0; border:1px solid var(--rule);
+    border-radius:3px; overflow:hidden; width:max-content; max-width:100%;
+  }
+  .seg{
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    background:transparent; color:var(--dim); border:0; border-right:1px solid var(--rule);
+    padding:7px 15px; cursor:pointer; display:flex; align-items:center; gap:8px;
+    transition:background .12s, color .12s;
+  }
+  .seg:last-child{border-right:0}
+  .seg:hover{color:var(--text); background:var(--panel)}
+  .seg.active{background:var(--amber); color:var(--ink); font-weight:600}
+  .seg em{font-style:normal; font-size:10px; opacity:.7; font-weight:600}
+  .seg.active em{opacity:.85}
+  .seg:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+
+  .filters{display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; align-items:center}
+  .filters .lbl{font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--dimmer); margin-left:4px}
+  .chip{
+    font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+    background:var(--panel); border:1px solid var(--rule); color:var(--dim);
+    border-radius:2px; padding:6px 11px; cursor:pointer;
+  }
+  .chip:hover{color:var(--text); border-color:var(--dim)}
+  .chip:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+  .sel{
+    font-family:var(--mono); font-size:11px; background:var(--panel);
+    border:1px solid var(--rule); color:var(--text); border-radius:2px;
+    padding:6px 8px; cursor:pointer; max-width:160px;
+  }
+  .sel:focus{outline:none; border-color:var(--amber)}
+  #q,#qi,#qx{
+    font-family:var(--mono); font-size:11px; background:var(--panel);
+    border:1px solid var(--rule); color:var(--text); border-radius:2px;
+    padding:6px 10px; width:190px;
+  }
+  #q:focus{outline:none; border-color:var(--amber)}
+  #qi{border-color:#1E4034}
+  #qi:focus{outline:none; border-color:var(--jade)}
+  #qi::placeholder{color:#4c7d6b}
+  #qx{border-color:#40241F}
+  #qx:focus{outline:none; border-color:var(--coral)}
+  #qx::placeholder{color:#8a5a50}
+
+  /* ---------- recent-search dropdown ---------- */
+  .searchwrap{position:relative; display:inline-block}
+  .hist{
+    position:absolute; top:calc(100% + 4px); left:0; z-index:30;
+    min-width:100%; max-width:280px; background:var(--panel2);
+    border:1px solid var(--rule); border-radius:3px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(0,0,0,.45);
+  }
+  .hist[hidden]{display:none}
+  .hist .hh{
+    font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dimmer); padding:6px 10px 5px; border-bottom:1px solid var(--rule);
+  }
+  .hist .hi{
+    display:flex; align-items:center; gap:8px; padding:6px 10px;
+    cursor:pointer; color:var(--dim); font-size:11px;
+  }
+  .hist .hi:hover{background:var(--panel); color:var(--text)}
+  .hist .hi .htxt{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hist .hi .hx{color:var(--dimmer); font-size:13px; line-height:1; padding:0 2px}
+  .hist .hi .hx:hover{color:var(--coral)}
+
+  /* ---------- board ---------- */
+  main{padding:0 20px 80px}
+  .colhead{
+    display:grid; grid-template-columns:64px 1fr 176px 116px 132px;
+    gap:14px; padding:10px 4px; color:var(--dimmer);
+    font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    border-bottom:1px solid var(--rule); position:sticky; top:var(--headh,150px);
+    background:var(--ink); z-index:10;
+  }
+  .colhead .sortable{
+    cursor:pointer; user-select:none; display:flex; align-items:center; gap:5px;
+    transition:color .15s;
+  }
+  .colhead .sortable:hover{color:var(--dim)}
+  .colhead .sortable.active{color:var(--amber)}
+  .colhead .arrow{font-size:8px; line-height:1}
+  .row{
+    display:grid; grid-template-columns:64px 1fr 176px 116px 132px;
+    gap:14px; padding:11px 4px 11px 0; border-bottom:1px solid #1A2431;
+    cursor:pointer; align-items:start; border-left:2px solid transparent;
+    padding-left:10px;
+  }
+  .row:hover{background:#101823}
+  .row.fresh{border-left-color:var(--amber)}
+  .row.opened{background:#101823}
+
+  .age{
+    color:var(--dim); font-size:12px; letter-spacing:.04em;
+    background:var(--panel); border:1px solid var(--rule); border-radius:2px;
+    padding:3px 0; text-align:center; width:60px;
+  }
+  .row.fresh .age{color:var(--amber); border-color:#4A3618; background:#221A0C}
+
+  .title{font-size:13.5px; color:var(--text); font-weight:500}
+  .co{color:var(--dim); font-size:11px; letter-spacing:.05em; text-transform:uppercase; margin-top:2px}
+  .tags{margin-top:5px; display:flex; gap:5px; flex-wrap:wrap}
+  .tag{font-size:10px; letter-spacing:.05em; color:var(--dimmer); border:1px solid #22303F; border-radius:2px; padding:1px 5px}
+  .tag.warn{color:var(--coral); border-color:#40241F}
+  .tag.new{color:var(--amber); border-color:#4A3618}
+
+  .loc{color:var(--dim); font-size:12px}
+  .fitwrap{font-size:12px; white-space:nowrap}
+  .bar{letter-spacing:.5px}
+  .f-hi{color:var(--jade)} .f-mid{color:var(--amber)} .f-lo{color:var(--dimmer)}
+  .fitnum{color:var(--dim); margin-left:6px}
+
+  /* dedicated Apply column: big primary button + small secondary actions */
+  .applycol{display:flex; flex-direction:column; gap:6px; align-items:stretch}
+  .applybtn{
+    display:block; text-align:center; text-decoration:none;
+    font-family:var(--mono); font-size:12px; letter-spacing:.09em;
+    text-transform:uppercase; font-weight:600; color:var(--ink);
+    background:var(--jade); border:1px solid var(--jade); border-radius:3px;
+    padding:9px 8px; transition:filter .12s;
+  }
+  .applybtn:hover{filter:brightness(1.1)}
+  .applybtn.done{background:transparent; color:var(--jade)}
+  .subacts{display:flex; gap:6px}
+  .sub{
+    flex:1; font-family:var(--mono); font-size:10px; letter-spacing:.05em;
+    text-transform:uppercase; background:transparent; border:1px solid var(--rule);
+    color:var(--dim); border-radius:2px; padding:4px 0; cursor:pointer;
+  }
+  .sub:hover{color:var(--text); border-color:var(--dim)}
+  .sub.on{color:var(--violet); border-color:#312B57}
+
+  .detail{
+    grid-column:1/-1; padding:12px 0 14px 0; border-top:1px dashed #1E2A38;
+    margin-top:10px; display:none;
+  }
+  .row.opened .detail{display:block}
+  .detail h4{
+    margin:0 0 6px; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--dimmer); font-weight:500;
+  }
+  .kw{display:flex; gap:5px; flex-wrap:wrap; margin-bottom:12px}
+  .kw span{font-size:11px; border:1px solid #22303F; border-radius:2px; padding:2px 6px}
+  .kw .hit{color:var(--jade); border-color:#1E4034}
+  .kw .miss{color:var(--coral); border-color:#40241F}
+  .snip{font-family:var(--sans); font-size:12.5px; color:#A9B8C9; max-width:78ch; white-space:pre-wrap}
+
+  .empty{padding:60px 4px; color:var(--dim); max-width:60ch}
+  .empty b{color:var(--text); font-weight:500; display:block; margin-bottom:8px}
+  .empty code{color:var(--amber); font-size:12px}
+
+  @media (max-width:900px){
+    .colhead{display:none}
+    .row{grid-template-columns:56px 1fr; gap:10px}
+    .loc,.fitwrap,.applycol{grid-column:2}
+    .applycol{margin-top:8px; max-width:260px}
+    .sel,.searchwrap{flex:1; min-width:140px; max-width:none}
+    #q,#qi,#qx{width:100%}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .row.fresh .age{animation:flip .4s ease-out}
+    @keyframes flip{from{transform:rotateX(-88deg); opacity:0} to{transform:none; opacity:1}}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div class="wordmark">Job<span>Radar</span></div>
+    <div class="clock" id="clock">initialising</div>
+    <div class="spacer"></div>
+    <a class="btn" href="/db">Sources</a>
+    <a class="btn" href="/profile">Profile</a>
+    <button class="btn" id="alerts">Enable alerts</button>
+    <button class="btn" id="markseen">Mark all read</button>
+    <button class="btn" id="refresh">Poll now</button>
+  </div>
+
+  <div class="addbar">
+    <input id="addurl" placeholder="Paste a careers page URL to track a company - greenhouse / lever / ashby / workable / smartrecruiters / recruitee / workday">
+    <button class="btn" id="addbtn">Track</button>
+    <span class="addmsg" id="addmsg"></span>
+  </div>
+
+  <div class="viewbar" id="viewbar">
+    <button class="seg active" data-v="latest">Latest <em id="c-latest">0</em></button>
+    <button class="seg" data-v="seen">Seen <em id="c-seen">0</em></button>
+    <button class="seg" data-v="all">All <em id="c-all">0</em></button>
+  </div>
+
+  <div class="filters" id="filters">
+    <div class="searchwrap">
+      <input id="q" placeholder="search title, skill, company" autocomplete="off">
+      <div class="hist" id="hist-q" hidden></div>
+    </div>
+    <div class="searchwrap">
+      <input id="qi" placeholder="include any (comma OR)" autocomplete="off" title="Show only jobs matching ANY of these comma-separated terms">
+      <div class="hist" id="hist-qi" hidden></div>
+    </div>
+    <div class="searchwrap">
+      <input id="qx" placeholder="exclude any (comma OR)" autocomplete="off" title="Hide jobs matching ANY of these comma-separated terms">
+      <div class="hist" id="hist-qx" hidden></div>
+    </div>
+    <select id="fTime" class="sel" title="Posted within">
+      <option value="0">Any time</option>
+      <option value="6">Last 6h</option>
+      <option value="24">Last 24h</option>
+      <option value="48">Last 48h</option>
+      <option value="168">Last 7 days</option>
+    </select>
+    <select id="fFit" class="sel" title="Minimum fit">
+      <option value="0">Any fit</option>
+      <option value="2">Fit 2+</option>
+      <option value="4">Fit 4+</option>
+      <option value="6">Fit 6+</option>
+      <option value="8">Fit 8+</option>
+    </select>
+    <select id="fLoc" class="sel" title="Location">
+      <option value="">All locations</option>
+    </select>
+    <select id="fStatus" class="sel" title="Status">
+      <option value="">Any status</option>
+      <option value="saved">Saved</option>
+      <option value="applied">Applied</option>
+    </select>
+    <button class="chip" id="clearf">Clear</button>
+  </div>
+</header>
+
+<main>
+  <div class="colhead">
+    <div class="sortable" data-sort="age">Age <span class="arrow"></span></div>
+    <div>Role</div>
+    <div>Location</div>
+    <div class="sortable" data-sort="fit">Fit <span class="arrow"></span></div>
+    <div>Apply</div>
+  </div>
+  <div id="board"></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const board = $('board');
+let JOBS = [], META = {}, opened = new Set();
+let knownKeys = null, notifyOn = false;
+let sortKey = 'fit', sortDir = 'desc';   // 'fit' | 'age'  x  'asc' | 'desc'
+
+// filter state (all persisted to localStorage, restored on load)
+let view = 'latest';        // Latest | Seen | All  (seen-state axis)
+let query = '', include = [], exclude = [];
+const splitTerms = s => (s||'').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+let fTime = 0, fFit = 0, fLoc = '', fStatus = '';   // 0/'' == no refinement
+
+// Location buckets are matched against each posting's location string. The
+// dropdown only surfaces the ones that actually appear in the current data.
+const LOC_BUCKETS = [
+  ['Remote',    /\bremote\b|work from home|anywhere/],
+  ['Gurugram',  /gurugram|gurgaon/],
+  ['Noida',     /noida/],
+  ['Delhi/NCR', /\bdelhi\b|\bncr\b/],
+  ['Bengaluru', /bengaluru|bangalore/],
+  ['Hyderabad', /hyderabad/],
+  ['Pune',      /\bpune\b/],
+  ['Mumbai',    /mumbai/],
+  ['Chennai',   /chennai/],
+  ['India',     /\bindia\b/],
+];
+const locRegex = label => (LOC_BUCKETS.find(b => b[0] === label) || [])[1] || null;
+
+/* ---------- helpers ---------- */
+const age = iso => {
+  if(!iso) return '--';
+  const m = (Date.now() - new Date(iso)) / 60000;
+  if (m < 60) return Math.max(1, Math.round(m)) + 'm';
+  if (m < 1440) return Math.round(m/60) + 'h';
+  if (m < 43200) return Math.round(m/1440) + 'd';
+  return Math.round(m/43200) + 'mo';
+};
+const hoursOld = iso => iso ? (Date.now() - new Date(iso))/3600000 : 1e9;
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const bar = f => {
+  const n = Math.round(f);
+  const cls = f >= 4 ? 'f-hi' : f >= 2 ? 'f-mid' : 'f-lo';
+  return `<span class="bar ${cls}">${'\u25AE'.repeat(n)}${'\u25AF'.repeat(10-n)}</span><span class="fitnum">${f.toFixed(1)}</span>`;
+};
+
+/* ---------- filtering ---------- */
+// Text search + exclude terms apply to every view.
+function matchText(j){
+  if (query){
+    const q = query.toLowerCase();
+    const hay = (j.title+' '+j.company+' '+j.location+' '+(j.matched||[]).join(' ')).toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  // include / exclude share one broad haystack (title, company, location, skills, description).
+  if (include.length || exclude.length){
+    const hayx = (j.title+' '+j.company+' '+j.location+' '+
+                  (j.matched||[]).join(' ')+' '+(j.gaps||[]).join(' ')+' '+
+                  (j.description||'')).toLowerCase();
+    // include: OR - keep only if AT LEAST ONE term is present.
+    if (include.length && !include.some(t => hayx.includes(t))) return false;
+    // exclude: OR - drop if ANY term is present.
+    if (exclude.length && exclude.some(t => hayx.includes(t))) return false;
+  }
+  return true;
+}
+
+// The top toggle: the seen/applied axis.
+function inView(j){
+  if (view === 'latest') return !j.seen;                       // brand new, not looked at
+  if (view === 'seen')   return j.seen && j.status !== 'applied'; // reviewed, not yet applied
+  return true;                                                 // all
+}
+
+// The dropdown refinements (time / fit / location) - all AND-combined.
+function passesRefine(j){
+  if (fTime && hoursOld(j.first_seen) > fTime) return false;
+  if (fFit  && (j.fit || 0) < fFit) return false;
+  if (fLoc){
+    const re = locRegex(fLoc);
+    if (re && !re.test((j.location||'').toLowerCase())) return false;
+  }
+  return true;
+}
+
+function visible(){
+  return JOBS.filter(j => {
+    if (j.status === 'hidden') return false;
+    if (!matchText(j) || !passesRefine(j)) return false;
+    // Saved / Applied are status views in their own right - they ignore the toggle
+    // so you can always pull up everything you've saved or applied to.
+    if (fStatus === 'saved')   return j.status === 'saved';
+    if (fStatus === 'applied') return j.status === 'applied';
+    return inView(j);
+  });
+}
+
+// Counts shown on the three toggle buttons (respecting the active text search).
+function viewCounts(){
+  const base = JOBS.filter(j => j.status !== 'hidden' && matchText(j));
+  return {
+    latest: base.filter(j => !j.seen).length,
+    seen:   base.filter(j => j.seen && j.status !== 'applied').length,
+    all:    base.length,
+  };
+}
+
+/* ---------- sorting ---------- */
+function applySort(rows){
+  const dir = sortDir === 'asc' ? 1 : -1;
+  // age: rank by how old the posting is (hoursOld). asc = newest first.
+  // fit: rank by score. desc = best first.
+  const val = sortKey === 'age' ? j => hoursOld(j.first_seen) : j => (j.fit || 0);
+  return rows.slice().sort((a, b) => {
+    const d = val(a) - val(b);
+    if (d) return d * dir;
+    return hoursOld(a.first_seen) - hoursOld(b.first_seen);   // tiebreak: newest first
+  });
+}
+
+function updateSortUI(){
+  document.querySelectorAll('.colhead .sortable').forEach(el => {
+    const active = el.dataset.sort === sortKey;
+    el.classList.toggle('active', active);
+    el.querySelector('.arrow').textContent =
+      active ? (sortDir === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
+/* ---------- render ---------- */
+function render(){
+  const vc = viewCounts();
+  document.getElementById('c-latest').textContent = vc.latest;
+  document.getElementById('c-seen').textContent = vc.seen;
+  document.getElementById('c-all').textContent = vc.all;
+
+  const rows = applySort(visible());
+  if (!rows.length){
+    board.innerHTML = JOBS.length
+      ? `<div class="empty"><b>Nothing matches these filters.</b>Hit Clear, switch to All, or loosen your role/skill weights on the <a href="/profile" style="color:var(--amber)">Profile</a> page.</div>`
+      : `<div class="empty"><b>The board is empty.</b>
+         Add your dream companies with the field above, or from the terminal:
+         <br><br><code>python jobradar.py add https://jobs.lever.co/company</code>
+         <br><code>python jobradar.py fetch</code></div>`;
+    return;
+  }
+
+  board.innerHTML = rows.map(j => {
+    const fresh = !j.seen;
+    const isOpen = opened.has(j.key);
+    const tags = [];
+    if (fresh) tags.push('<span class="tag new">new</span>');
+    (j.flags||[]).forEach(f => tags.push(`<span class="tag warn">${esc(f.toLowerCase())}</span>`));
+    if (j.team) tags.push(`<span class="tag">${esc(j.team)}</span>`);
+    tags.push(`<span class="tag">${esc(j.source)}</span>`);
+
+    return `<div class="row ${fresh?'fresh':''} ${isOpen?'opened':''}" data-k="${esc(j.key)}">
+      <div class="age">${age(j.first_seen)}</div>
+      <div>
+        <div class="title">${esc(j.title)}</div>
+        <div class="co">${esc(j.company)}</div>
+        <div class="tags">${tags.join('')}</div>
+      </div>
+      <div class="loc">${esc(j.location)}</div>
+      <div class="fitwrap">${bar(j.fit||0)}</div>
+      <div class="applycol">
+        <a class="applybtn ${j.status==='applied'?'done':''}" href="${esc(j.url)}"
+           target="_blank" rel="noopener" data-act="open">${j.status==='applied'?'Applied ✓':'Apply'}</a>
+        <div class="subacts">
+          <button class="sub ${j.status==='saved'?'on':''}" data-act="saved">${j.status==='saved'?'Saved':'Save'}</button>
+          <button class="sub" data-act="hidden">Hide</button>
+        </div>
+      </div>
+      <div class="detail">
+        ${(j.matched||[]).length ? `<h4>Matches your stack</h4>
+          <div class="kw">${j.matched.map(m=>`<span class="hit">${esc(m)}</span>`).join('')}</div>`:''}
+        ${(j.gaps||[]).length ? `<h4>Gaps to address in the resume</h4>
+          <div class="kw">${j.gaps.map(m=>`<span class="miss">${esc(m)}</span>`).join('')}</div>`:''}
+        <h4>Posting${j.years_req?` &middot; ${j.years_req}+ yrs stated`:''}</h4>
+        <div class="snip">${esc((j.description||'No description on this board.').slice(0,1400))}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- interactions ---------- */
+board.addEventListener('click', e => {
+  const row = e.target.closest('.row');
+  if (!row) return;
+  const key = row.dataset.k;
+  const act = e.target.dataset.act;
+
+  if (act && act !== 'open'){
+    e.stopPropagation();
+    const j = JOBS.find(x => x.key === key);
+    const next = (j.status === act) ? 'new' : act;
+    j.status = next;
+    j.seen = true;                    // Save / Hide are explicit triage: mark read
+    post('/api/status', {key, status: next});
+    render(); return;
+  }
+  if (act === 'open'){
+    // Opening the careers page counts as applying: auto-tag it so it drops out
+    // of Latest/Seen and lands in your Applied pile. The link still opens (new tab);
+    // we defer the re-render so removing the row can't cancel the navigation.
+    const j = JOBS.find(x => x.key === key);
+    if (j && j.status !== 'applied'){
+      j.status = 'applied'; j.seen = true;
+      post('/api/status', {key, status: 'applied'});
+      setTimeout(render, 0);
+    }
+    return;
+  }
+  // Plain row click = expand/collapse to read. This is NOT a triage action, so it
+  // must NOT mark the job read - it stays in Latest until you actually act on it.
+  opened.has(key) ? opened.delete(key) : opened.add(key);
+  render();
+});
+
+document.querySelector('.colhead').addEventListener('click', e => {
+  const el = e.target.closest('.sortable');
+  if (!el) return;
+  const key = el.dataset.sort;
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = 'desc'; }   // new column starts descending
+  updateSortUI();
+  render();
+});
+
+/* ---------- filter persistence ---------- */
+const FKEY = 'jobradar.filters';
+function saveFilters(){
+  try{
+    localStorage.setItem(FKEY, JSON.stringify({
+      view, query,
+      includeRaw: $('qi').value, excludeRaw: $('qx').value,
+      fTime, fFit, fLoc, fStatus,
+    }));
+  }catch(e){}
+}
+function restoreFilters(){
+  let s = {};
+  try{ s = JSON.parse(localStorage.getItem(FKEY) || '{}'); }catch(e){}
+  view    = s.view || 'latest';
+  query   = s.query || '';
+  include = splitTerms(s.includeRaw);
+  exclude = splitTerms(s.excludeRaw);
+  fTime   = +s.fTime || 0;
+  fFit    = +s.fFit  || 0;
+  fLoc    = s.fLoc || '';
+  fStatus = s.fStatus || '';
+  $('q').value  = query;
+  $('qi').value = s.includeRaw || '';
+  $('qx').value = s.excludeRaw || '';
+  $('fTime').value   = String(fTime);
+  $('fFit').value    = String(fFit);
+  $('fStatus').value = fStatus;
+  document.querySelectorAll('.seg').forEach(sg => sg.classList.toggle('active', sg.dataset.v === view));
+  // fLoc <select> is filled once jobs load (populateLocations)
+}
+
+// Rebuild the location dropdown from the buckets that actually occur in the data.
+function populateLocations(){
+  const sel = $('fLoc');
+  const opts = LOC_BUCKETS
+    .map(([label, re]) => [label, JOBS.filter(j =>
+        j.status !== 'hidden' && re.test((j.location||'').toLowerCase())).length])
+    .filter(([, n]) => n > 0);
+  sel.innerHTML = '<option value="">All locations</option>' +
+    opts.map(([label, n]) => `<option value="${label}">${label} (${n})</option>`).join('');
+  if ([...sel.options].some(o => o.value === fLoc)) sel.value = fLoc;
+  else { fLoc = ''; sel.value = ''; }
+}
+
+/* ---------- filter interactions ---------- */
+$('viewbar').addEventListener('click', e => {
+  const b = e.target.closest('.seg');
+  if (!b) return;
+  view = b.dataset.v;
+  document.querySelectorAll('.seg').forEach(s => s.classList.toggle('active', s === b));
+  saveFilters(); render();
+});
+/* ---------- recent-search history (per field, last 6, persisted) ---------- */
+const RKEY = 'jobradar.recent';
+const SEARCH_FIELDS = ['q', 'qi', 'qx'];
+const HIST_LABEL = { q:'Recent searches', qi:'Recent includes', qx:'Recent excludes' };
+let recent = { q:[], qi:[], qx:[] };
+
+function loadRecent(){
+  try{ recent = Object.assign({q:[],qi:[],qx:[]}, JSON.parse(localStorage.getItem(RKEY) || '{}')); }
+  catch(e){ recent = {q:[],qi:[],qx:[]}; }
+}
+function saveRecent(){ try{ localStorage.setItem(RKEY, JSON.stringify(recent)); }catch(e){} }
+function pushRecent(field, val){
+  val = (val || '').trim();
+  if (!val) return;
+  const list = recent[field] || (recent[field] = []);
+  const i = list.findIndex(x => x.toLowerCase() === val.toLowerCase());
+  if (i > -1) list.splice(i, 1);          // de-dupe, then move to front
+  list.unshift(val);
+  if (list.length > 6) list.length = 6;   // keep only the last 6
+  saveRecent();
+}
+function removeRecent(field, val){
+  const list = recent[field] || [];
+  const i = list.indexOf(val);
+  if (i > -1){ list.splice(i, 1); saveRecent(); }
+}
+
+function showHist(field){
+  const box = $('hist-' + field);
+  const list = recent[field] || [];
+  if (!list.length){ box.hidden = true; return; }
+  box.innerHTML = `<div class="hh">${HIST_LABEL[field]}</div>` +
+    list.map(v => `<div class="hi" data-v="${esc(v)}">
+        <span class="htxt">${esc(v)}</span>
+        <span class="hx" data-x="1" title="Remove">×</span>
+      </div>`).join('');
+  box.hidden = false;
+}
+function hideHist(field){ $('hist-' + field).hidden = true; }
+function hideAllHist(except){ SEARCH_FIELDS.forEach(f => { if (f !== except) hideHist(f); }); }
+
+function applyField(field, val){
+  if (field === 'q')      query   = val.trim();
+  else if (field === 'qi') include = splitTerms(val);
+  else if (field === 'qx') exclude = splitTerms(val);
+}
+
+/* ---------- search-field wiring ---------- */
+SEARCH_FIELDS.forEach(field => {
+  const el = $(field);
+  const box = $('hist-' + field);
+
+  el.addEventListener('input', e => { applyField(field, e.target.value); hideHist(field); saveFilters(); render(); });
+  el.addEventListener('focus', () => { hideAllHist(field); showHist(field); });
+  el.addEventListener('click', () => { hideAllHist(field); showHist(field); });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){ pushRecent(field, el.value); hideHist(field); el.blur(); }
+    else if (e.key === 'Escape'){ hideHist(field); }
+  });
+  el.addEventListener('blur', () => { pushRecent(field, el.value); });
+
+  // mousedown (not click) so it fires before the input's blur cancels it.
+  box.addEventListener('mousedown', e => {
+    const item = e.target.closest('.hi');
+    if (!item) return;
+    e.preventDefault();                    // keep focus on the input
+    const v = item.dataset.v;
+    if (e.target.dataset.x){ removeRecent(field, v); showHist(field); return; }
+    el.value = v;
+    applyField(field, v);
+    pushRecent(field, v);                  // reuse bumps it back to the top
+    hideHist(field); saveFilters(); render();
+  });
+});
+
+// A click anywhere outside the search widgets dismisses any open history.
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('.searchwrap')) hideAllHist();
+});
+
+$('fTime').addEventListener('change',   e => { fTime = +e.target.value;  saveFilters(); render(); });
+$('fFit').addEventListener('change',    e => { fFit = +e.target.value;   saveFilters(); render(); });
+$('fLoc').addEventListener('change',    e => { fLoc = e.target.value;    saveFilters(); render(); });
+$('fStatus').addEventListener('change', e => { fStatus = e.target.value; saveFilters(); render(); });
+$('clearf').addEventListener('click', () => {
+  query = ''; include = []; exclude = []; fTime = 0; fFit = 0; fLoc = ''; fStatus = '';
+  $('q').value = ''; $('qi').value = ''; $('qx').value = '';
+  $('fTime').value = '0'; $('fFit').value = '0'; $('fLoc').value = ''; $('fStatus').value = '';
+  hideAllHist(); saveFilters(); render();
+});
+
+document.getElementById('refresh').addEventListener('click', async e => {
+  e.target.textContent = 'Polling'; 
+  await post('/api/refresh', {});
+  await load();
+  e.target.textContent = 'Poll now';
+});
+
+document.getElementById('markseen').addEventListener('click', () => {
+  markRead(visible().map(j => j.key));
+  render();
+});
+
+document.getElementById('alerts').addEventListener('click', async e => {
+  const p = await Notification.requestPermission();
+  notifyOn = p === 'granted';
+  e.target.classList.toggle('on', notifyOn);
+  e.target.textContent = notifyOn ? 'Alerts on' : 'Alerts blocked';
+});
+
+document.getElementById('addbtn').addEventListener('click', addCompany);
+document.getElementById('addurl').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCompany();
+});
+
+async function addCompany(){
+  const input = document.getElementById('addurl');
+  const msg = document.getElementById('addmsg');
+  const url = input.value.trim();
+  if (!url) return;
+  msg.className = 'addmsg'; msg.textContent = 'Checking the board...';
+  const r = await post('/api/add', {url});
+  if (r && r.ok){
+    msg.className = 'addmsg ok';
+    msg.textContent = `${r.name} added (${r.ats}, ${r.count} postings). Polling now.`;
+    input.value = '';
+    await post('/api/refresh', {}); await load();
+  } else {
+    msg.className = 'addmsg err';
+    msg.textContent = (r && r.error) || 'Could not reach that page.';
+  }
+}
+
+/* ---------- data ---------- */
+async function post(path, body){
+  try{
+    const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'},
+                                body: JSON.stringify(body)});
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+function markRead(keys){
+  keys.forEach(k => { const j = JOBS.find(x=>x.key===k); if (j) j.seen = true; });
+  post('/api/seen', {keys});
+  updateTitle();
+}
+
+function updateTitle(){
+  const n = JOBS.filter(j => !j.seen && j.status !== 'hidden').length;
+  document.title = n ? `(${n}) JobRadar` : 'JobRadar';
+  return n;
+}
+
+async function load(){
+  let d;
+  try{ d = await (await fetch('/api/jobs')).json(); }
+  catch(e){ document.getElementById('clock').textContent = 'server not responding'; return; }
+
+  JOBS = d.jobs; META = d.meta || {};
+
+  const keys = new Set(JOBS.map(j => j.key));
+  if (knownKeys){
+    const arrivals = JOBS.filter(j => !knownKeys.has(j.key));
+    if (arrivals.length && notifyOn){
+      const top = arrivals.sort((a,b)=>b.fit-a.fit)[0];
+      new Notification(`${arrivals.length} new posting${arrivals.length>1?'s':''}`,
+        {body:`${top.title} - ${top.company} (fit ${top.fit})`, tag:'jobradar'});
+    }
+  }
+  knownKeys = keys;
+
+  populateLocations();
+  const unread = updateTitle();
+  const errs = (META.errors||[]).length;
+  document.getElementById('clock').innerHTML =
+    `${JOBS.length} tracked &middot; <b>${unread} unread</b> &middot; ` +
+    `${META.sources||0} boards${errs?` &middot; ${errs} failing`:''} &middot; ` +
+    `polled ${age(META.last_fetch)} ago`;
+  render();
+}
+
+function sizeHeader(){
+  document.documentElement.style.setProperty('--headh',
+    document.querySelector('header').offsetHeight + 'px');
+}
+
+loadRecent();
+restoreFilters();
+updateSortUI();
+load();
+sizeHeader();
+window.addEventListener('resize', sizeHeader);
+setInterval(load, 45000);
+setInterval(() => { render(); sizeHeader(); }, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobRadar · Profile</title>
+<style>
+  :root{
+    --ink:#0B1017; --panel:#131B26; --panel2:#1A2432; --rule:#26344A;
+    --text:#E8EFF7; --dim:#7B8CA1; --dimmer:#4E5D70;
+    --amber:#FFB13D; --jade:#46D6A4; --coral:#F0705C; --violet:#8B7BF0;
+    --mono:ui-monospace,"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink); color:var(--text); font-family:var(--mono);
+    font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+
+  header{
+    position:sticky; top:0; z-index:20; background:var(--ink);
+    border-bottom:1px solid var(--rule); padding:14px 20px;
+  }
+  .top{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap}
+  .wordmark{font-size:15px; font-weight:700; letter-spacing:.22em; text-transform:uppercase}
+  .wordmark span{color:var(--amber)}
+  .crumb{color:var(--dim); font-size:11px; letter-spacing:.12em; text-transform:uppercase}
+  .spacer{flex:1}
+  .btn{
+    font-family:var(--mono); font-size:11px; letter-spacing:.09em; text-decoration:none;
+    text-transform:uppercase; background:transparent; color:var(--dim);
+    border:1px solid var(--rule); border-radius:2px; padding:6px 11px;
+    cursor:pointer; transition:border-color .15s, color .15s; display:inline-block;
+  }
+  .btn:hover{color:var(--text); border-color:var(--dim)}
+  .btn.primary{color:var(--ink); background:var(--jade); border-color:var(--jade); font-weight:600}
+  .btn.primary:hover{filter:brightness(1.08)}
+
+  main{padding:22px 20px 120px; max-width:900px}
+  .intro{color:var(--dim); font-size:12px; max-width:74ch; margin-bottom:22px}
+  .intro b{color:var(--text); font-weight:500}
+
+  h2{
+    font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--dimmer);
+    font-weight:500; margin:26px 0 12px; padding-bottom:7px; border-bottom:1px solid var(--rule);
+  }
+  .field{
+    background:var(--panel); border:1px solid var(--rule); border-radius:4px;
+    padding:14px 15px; margin-bottom:12px;
+  }
+  .fhead{margin-bottom:10px}
+  .fhead h3{margin:0; font-size:13px; font-weight:600; color:var(--text)}
+  .fhead h3 .dot{display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:8px; vertical-align:middle}
+  .dot.jade{background:var(--jade)} .dot.coral{background:var(--coral)}
+  .dot.amber{background:var(--amber)} .dot.violet{background:var(--violet)} .dot.dim{background:var(--dim)}
+  .fhead p{margin:4px 0 0 16px; font-size:11.5px; color:var(--dim)}
+
+  /* tag editor */
+  .tags{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:9px}
+  .tags .none{color:var(--dimmer); font-size:11px}
+  .tagchip{
+    display:inline-flex; align-items:center; gap:7px; font-size:11.5px;
+    background:var(--panel2); border:1px solid var(--rule); color:var(--text);
+    border-radius:3px; padding:3px 5px 3px 9px;
+  }
+  .tagchip b{cursor:pointer; color:var(--dimmer); font-weight:700; font-size:13px; line-height:1}
+  .tagchip b:hover{color:var(--coral)}
+  .taginput{
+    font-family:var(--mono); font-size:11.5px; background:var(--ink);
+    border:1px dashed var(--rule); color:var(--text); border-radius:3px; padding:5px 9px; width:230px;
+  }
+  .taginput:focus{outline:none; border-color:var(--amber); border-style:solid}
+
+  /* weighted editor */
+  .wrows{display:flex; flex-direction:column; gap:6px; margin-bottom:9px}
+  .wrows .none{color:var(--dimmer); font-size:11px}
+  .wrow{display:flex; gap:8px; align-items:center}
+  .wrow .wk{
+    flex:1; font-family:var(--mono); font-size:12px; background:var(--ink);
+    border:1px solid var(--rule); color:var(--text); border-radius:3px; padding:6px 9px;
+  }
+  .wrow .wv{
+    width:74px; font-family:var(--mono); font-size:12px; background:var(--ink);
+    border:1px solid var(--rule); color:var(--amber); border-radius:3px; padding:6px 8px; text-align:right;
+  }
+  .wrow .wk:focus,.wrow .wv:focus{outline:none; border-color:var(--amber)}
+  .wdel{
+    background:transparent; border:1px solid var(--rule); color:var(--dimmer);
+    border-radius:3px; width:30px; height:30px; cursor:pointer; font-size:15px; line-height:1;
+  }
+  .wdel:hover{color:var(--coral); border-color:#40241F}
+  .addrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase;
+    background:transparent; border:1px dashed var(--rule); color:var(--dim);
+    border-radius:3px; padding:6px 12px; cursor:pointer;
+  }
+  .addrow:hover{color:var(--text); border-color:var(--dim)}
+
+  .years{display:flex; align-items:center; gap:12px}
+  .years input{
+    width:80px; font-family:var(--mono); font-size:14px; background:var(--ink);
+    border:1px solid var(--rule); color:var(--text); border-radius:3px; padding:8px 10px; text-align:center;
+  }
+  .years input:focus{outline:none; border-color:var(--amber)}
+  .years span{color:var(--dim); font-size:12px}
+
+  /* sticky save bar */
+  .savebar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    background:var(--panel); border-top:1px solid var(--rule);
+    padding:12px 20px; display:flex; align-items:center; gap:12px;
+  }
+  .savebar .msg{font-size:11.5px; color:var(--dim)}
+  .savebar .msg.ok{color:var(--jade)} .savebar .msg.err{color:var(--coral)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div class="wordmark">Job<span>Radar</span></div>
+    <div class="crumb">Profile · matching rules</div>
+    <div class="spacer"></div>
+    <a class="btn" href="/">&larr; Board</a>
+    <a class="btn" href="/db">Sources</a>
+  </div>
+</header>
+
+<main>
+  <div class="intro">
+    <b>This is the filter behind your board.</b> Every posting is scored against these rules,
+    and only relevant ones reach the dashboard. Edit anything, then <b>Save &amp; re-poll</b> to
+    re-score every tracked board with the new weights.
+  </div>
+
+  <h2>Roles — matched against the job title</h2>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot jade"></span>Core roles</h3>
+      <p>Your bullseye. A title containing any of these gets the biggest boost.</p></div>
+    <div class="tags" data-k="titles_core"></div>
+    <input class="taginput" data-k="titles_core" placeholder="add a title + Enter">
+  </div>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot dim"></span>Adjacent roles</h3>
+      <p>Still worth seeing, scored lower than core.</p></div>
+    <div class="tags" data-k="titles_ok"></div>
+    <input class="taginput" data-k="titles_ok" placeholder="add a title + Enter">
+  </div>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot coral"></span>Blocked roles</h3>
+      <p>Hard filter — any title containing these is dropped entirely (never scored).</p></div>
+    <div class="tags" data-k="titles_block"></div>
+    <input class="taginput" data-k="titles_block" placeholder="add a word + Enter">
+  </div>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot amber"></span>Seniority stretch</h3>
+      <p>Flagged and penalised as a reach for your level.</p></div>
+    <div class="tags" data-k="seniority_stretch"></div>
+    <input class="taginput" data-k="seniority_stretch" placeholder="e.g. senior, lead, staff + Enter">
+  </div>
+
+  <h2>Skills — matched against title + description</h2>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot jade"></span>Skills you have</h3>
+      <p>Each keyword found adds its weight to the score.</p></div>
+    <div class="wrows" data-k="skills"></div>
+    <button class="addrow" data-k="skills">+ add skill</button>
+  </div>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot coral"></span>Gaps — penalise</h3>
+      <p>Tech you don't have. Each match subtracts its weight (total penalty is capped, so a gap dents a good role but never buries it).</p></div>
+    <div class="wrows" data-k="gaps"></div>
+    <button class="addrow" data-k="gaps">+ add gap</button>
+  </div>
+
+  <h2>Location</h2>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot violet"></span>Location weights</h3>
+      <p>Bonus points when a posting's location matches. Higher = you'd rather work there.</p></div>
+    <div class="wrows" data-k="locations"></div>
+    <button class="addrow" data-k="locations">+ add location</button>
+  </div>
+
+  <div class="field">
+    <div class="fhead"><h3><span class="dot violet"></span>Allowed locations (gate)</h3>
+      <p>A posting must mention one of these (or read as remote) — otherwise it's dropped as out-of-region.</p></div>
+    <div class="tags" data-k="location_required"></div>
+    <input class="taginput" data-k="location_required" placeholder="e.g. india, remote, pune + Enter">
+  </div>
+
+  <h2>Experience</h2>
+
+  <div class="field">
+    <div class="fhead"><h3>Max years wanted</h3>
+      <p>Postings that state more required years than this are penalised as over-level.</p></div>
+    <div class="years"><input id="years" type="number" min="0" max="20" step="1"><span>years</span></div>
+  </div>
+</main>
+
+<div class="savebar">
+  <button class="btn primary" id="save">Save</button>
+  <button class="btn" id="savepoll">Save &amp; re-poll</button>
+  <span class="msg" id="msg"></span>
+</div>
+
+<script>
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TAG_KEYS = ['titles_core','titles_ok','titles_block','seniority_stretch','location_required'];
+const W_KEYS   = ['skills','gaps','locations'];
+
+let T = {}, W = {}, years = 5;
+
+/* ---------- model <-> profile json ---------- */
+function ingest(p){
+  TAG_KEYS.forEach(k => T[k] = Array.isArray(p[k]) ? p[k].slice() : []);
+  W_KEYS.forEach(k => W[k] = Object.entries(p[k] || {}));   // [[kw, weight], ...]
+  years = (p.years_max ?? 5);
+}
+function build(){
+  const prof = { years_max: parseInt(document.getElementById('years').value || '0', 10) || 0 };
+  TAG_KEYS.forEach(k => prof[k] = T[k]);
+  W_KEYS.forEach(k => {
+    const o = {};
+    W[k].forEach(([kk, vv]) => {
+      const key = (kk || '').trim().toLowerCase();
+      if (key) o[key] = Number(vv) || 0;      // later dup wins
+    });
+    prof[k] = o;
+  });
+  return prof;
+}
+
+/* ---------- render ---------- */
+function renderTags(k){
+  const box = document.querySelector(`.tags[data-k="${k}"]`);
+  box.innerHTML = T[k].length
+    ? T[k].map((t, i) => `<span class="tagchip">${esc(t)}<b data-k="${k}" data-i="${i}">×</b></span>`).join('')
+    : '<span class="none">none</span>';
+}
+function renderW(k){
+  const box = document.querySelector(`.wrows[data-k="${k}"]`);
+  box.innerHTML = W[k].length
+    ? W[k].map((row, i) => `
+      <div class="wrow" data-k="${k}" data-i="${i}">
+        <input class="wk" value="${esc(String(row[0]))}" placeholder="keyword">
+        <input class="wv" type="number" step="1" value="${row[1]}">
+        <button class="wdel" title="remove">×</button>
+      </div>`).join('')
+    : '<div class="none">none yet — add one below</div>';
+}
+function renderAll(){
+  TAG_KEYS.forEach(renderTags);
+  W_KEYS.forEach(renderW);
+  document.getElementById('years').value = years;
+}
+
+/* ---------- tag interactions ---------- */
+document.querySelectorAll('.taginput').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const k = inp.dataset.k;
+    const v = inp.value.trim().toLowerCase();
+    if (v && !T[k].includes(v)) T[k].push(v);
+    inp.value = '';
+    renderTags(k); dirty();
+  });
+});
+document.addEventListener('click', e => {
+  const rm = e.target.closest('.tagchip b');
+  if (rm){
+    T[rm.dataset.k].splice(+rm.dataset.i, 1);
+    renderTags(rm.dataset.k); dirty(); return;
+  }
+  const del = e.target.closest('.wdel');
+  if (del){
+    const row = del.closest('.wrow');
+    W[row.dataset.k].splice(+row.dataset.i, 1);
+    renderW(row.dataset.k); dirty(); return;
+  }
+  const add = e.target.closest('.addrow');
+  if (add){
+    W[add.dataset.k].push(['', 1]);
+    renderW(add.dataset.k);
+    const rows = document.querySelectorAll(`.wrows[data-k="${add.dataset.k}"] .wk`);
+    rows[rows.length - 1]?.focus();
+    dirty();
+  }
+});
+/* keep the W model in sync as weighted rows are typed into */
+document.addEventListener('input', e => {
+  const row = e.target.closest('.wrow');
+  if (row){
+    const arr = W[row.dataset.k][+row.dataset.i];
+    if (e.target.classList.contains('wk')) arr[0] = e.target.value;
+    if (e.target.classList.contains('wv')) arr[1] = e.target.value;
+    dirty();
+  }
+  if (e.target.id === 'years') dirty();
+});
+
+/* ---------- save ---------- */
+function dirty(){ setMsg('unsaved changes', ''); }
+function setMsg(text, cls){
+  const m = document.getElementById('msg');
+  m.textContent = text; m.className = 'msg ' + (cls || '');
+}
+async function post(path, body){
+  const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'},
+                              body: JSON.stringify(body)});
+  return r.json();
+}
+async function doSave(repoll){
+  setMsg('saving…', '');
+  const r = await post('/api/profile', build());
+  if (!r || !r.ok){ setMsg((r && r.error) || 'save failed', 'err'); return; }
+  if (repoll){
+    setMsg('saved — re-polling all boards…', '');
+    const rr = await post('/api/refresh', {});
+    setMsg(`saved & re-polled · ${rr && rr.new != null ? rr.new : 0} new matches`, 'ok');
+  } else {
+    setMsg('saved — applies on the next poll', 'ok');
+  }
+}
+document.getElementById('save').addEventListener('click', () => doSave(false));
+document.getElementById('savepoll').addEventListener('click', () => doSave(true));
+
+/* ---------- boot ---------- */
+(async function(){
+  try{
+    const p = await (await fetch('/api/profile')).json();
+    ingest(p); renderAll();
+    setMsg('', '');
+  }catch(e){
+    setMsg('could not load profile — is the server running?', 'err');
+  }
+})();
+</script>
+</body>
+</html>
