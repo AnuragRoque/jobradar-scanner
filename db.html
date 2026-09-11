@@ -99,6 +99,31 @@
   .empty b{color:var(--text); font-weight:500; display:block; margin-bottom:8px}
   .empty code{color:var(--amber)}
 
+  /* ---------- can't-poll tier (link-only) ---------- */
+  .section-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:34px 0 12px}
+  .section-head h2{
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin:0;
+  }
+  .section-head .sub{font-size:11px; color:var(--dimmer); max-width:60ch}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(238px,1fr)); gap:8px}
+  .card{
+    display:flex; flex-direction:column; gap:7px; background:var(--panel);
+    border:1px solid var(--rule); border-radius:3px; padding:11px 13px;
+    text-decoration:none; transition:border-color .15s, background .15s;
+  }
+  .card:hover{border-color:var(--dim); background:var(--panel2)}
+  .card .cname{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .card .cname b{color:var(--text); font-weight:600; font-size:12.5px}
+  .card .cname .arr{color:var(--dim); font-size:11px}
+  .card:hover .cname .arr{color:var(--amber)}
+  .card .cats{font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim);
+       border:1px solid #22303F; border-radius:2px; padding:1px 6px; align-self:flex-start}
+  .card .cnote{
+    font-size:10.5px; color:var(--dimmer); line-height:1.4;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+
   @media (max-width:640px){
     .stat{flex:1; min-width:calc(50% - 5px)}
   }
@@ -143,6 +168,7 @@
     </table>
   </div>
   <div id="empty"></div>
+  <div id="linkzone"></div>
 </main>
 
 <script>
@@ -151,6 +177,16 @@ let query = '', sortKey = 'live', sortDir = 'desc';
 
 const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ZERO = {total:0, live:0, unseen:0, fresh24:0, applied:0, saved:0, top_fit:0};
+
+/* An ATS is pollable only if we have an adapter for it (mirrors ADAPTERS in jobradar.py).
+   Anything else — or an explicitly disabled board — falls into the manual "can't poll" tier. */
+const POLLABLE_ATS = new Set(['greenhouse','lever','ashby','smartrecruiters','recruitee',
+  'workable','workday','oraclecloud','eightfold','keka']);
+const isPollable = s => POLLABLE_ATS.has(s.ats) && !s.disabled;
+const matchesQ = (name, ats) => {
+  const q = query.toLowerCase();
+  return !q || name.toLowerCase().includes(q) || (ats||'').toLowerCase().includes(q);
+};
 
 /* Prefer the exact careers page we detected; otherwise reconstruct the public board URL. */
 function boardUrl(s){
@@ -171,11 +207,10 @@ function boardUrl(s){
 function fitClass(f){ return f >= 4 ? 'fit-hi' : f >= 2 ? 'fit-mid' : 'fit-lo'; }
 
 function rowsData(){
-  const q = query.toLowerCase();
-  const list = SOURCES
+  const list = SOURCES.filter(isPollable)
     .map(s => ({ src: s, name: s.name || s.slug || '?', ats: s.ats || '?',
                  ...(STATS[s.name] || ZERO) }))
-    .filter(r => !q || r.name.toLowerCase().includes(q) || r.ats.toLowerCase().includes(q));
+    .filter(r => matchesQ(r.name, r.ats));
 
   const dir = sortDir === 'asc' ? 1 : -1;
   list.sort((a, b) => {
@@ -189,7 +224,14 @@ function rowsData(){
   return list;
 }
 
-function renderSummary(rows){
+function linkData(){
+  return SOURCES.filter(s => !isPollable(s))
+    .map(s => ({ src: s, name: s.name || s.slug || '?', ats: s.ats || '?', note: s.note || '' }))
+    .filter(r => matchesQ(r.name, r.ats))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+function renderSummary(rows, links){
   const t = rows.reduce((a, r) => ({
     src: a.src + 1, live: a.live + r.live, unseen: a.unseen + r.unseen,
     applied: a.applied + r.applied, saved: a.saved + r.saved,
@@ -198,34 +240,59 @@ function renderSummary(rows){
     ? Math.max(1, Math.round((Date.now() - new Date(META.last_fetch)) / 60000)) + 'm ago'
     : 'never';
   document.getElementById('summary').innerHTML = `
-    <div class="stat"><div class="n">${t.src}</div><div class="l">Sources</div></div>
+    <div class="stat"><div class="n">${t.src}</div><div class="l">Polled sources</div></div>
     <div class="stat"><div class="n">${t.live}</div><div class="l">Live jobs</div></div>
     <div class="stat amber"><div class="n">${t.unseen}</div><div class="l">Unseen</div></div>
     <div class="stat jade"><div class="n">${t.applied}</div><div class="l">Applied</div></div>
     <div class="stat violet"><div class="n">${t.saved}</div><div class="l">Saved</div></div>
+    <div class="stat"><div class="n">${links.length}</div><div class="l">Manual</div></div>
     <div class="stat"><div class="n">${polled}</div><div class="l">Last poll</div></div>`;
+}
+
+function renderLinks(links){
+  const zone = document.getElementById('linkzone');
+  if (!links.length){ zone.innerHTML = ''; return; }
+  zone.innerHTML = `
+    <div class="section-head">
+      <h2>Can't poll · check manually</h2>
+      <span class="sub">${links.length} board${links.length === 1 ? '' : 's'} with no public feed —
+        custom sites, captcha-walled or legacy ATS. One click opens their careers page.</span>
+    </div>
+    <div class="cards">` +
+    links.map(r => {
+      const url = boardUrl(r.src);
+      const open = url && url !== '#';
+      return `<a class="card" ${open ? `href="${esc(url)}" target="_blank" rel="noopener"` : ''}
+                 title="${esc(r.note)}">
+        <div class="cname"><b>${esc(r.name)}</b><span class="arr">${open ? '↗' : ''}</span></div>
+        <span class="cats">${esc(r.ats)}</span>
+        ${r.note ? `<div class="cnote">${esc(r.note)}</div>` : ''}
+      </a>`;
+    }).join('') + `</div>`;
 }
 
 function render(){
   const rows = rowsData();
-  renderSummary(rows);
+  const links = linkData();
+  renderSummary(rows, links);
   document.querySelectorAll('th.sortable').forEach(th => {
     const active = th.dataset.k === sortKey;
     th.classList.toggle('active', active);
     th.querySelector('.arrow').textContent = active ? (sortDir === 'asc' ? '▲' : '▼') : '';
   });
   document.getElementById('count').textContent =
-    `${rows.length} source${rows.length === 1 ? '' : 's'}`;
+    `${rows.length} polled source${rows.length === 1 ? '' : 's'}`;
 
   const tbody = document.getElementById('rows');
   const empty = document.getElementById('empty');
   if (!rows.length){
     tbody.innerHTML = '';
     empty.innerHTML = SOURCES.length
-      ? `<div class="empty"><b>No sources match that filter.</b></div>`
+      ? `<div class="empty"><b>No polled sources match that filter.</b></div>`
       : `<div class="empty"><b>No companies tracked yet.</b>
          Add one from the board, or the terminal:
          <br><br><code>python jobradar.py add https://jobs.lever.co/company</code></div>`;
+    renderLinks(links);
     return;
   }
   empty.innerHTML = '';
@@ -246,6 +313,7 @@ function render(){
         : '<span class="fit-lo">—</span>'}</td>
     </tr>`;
   }).join('');
+  renderLinks(links);
 }
 
 /* ---------- interactions ---------- */

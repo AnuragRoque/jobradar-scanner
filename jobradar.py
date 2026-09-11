@@ -291,6 +291,100 @@ def _workday_posted(text):
     return None
 
 
+def ats_oraclecloud(c):
+    """Oracle Fusion/Cloud HCM 'CandidateExperience' REST feed.
+       Config needs host + site (the siteNumber, e.g. CX_1 / Jobs-at-Icertis).
+       Both are derived from careers_url/slug if not given explicitly."""
+    host = c.get("host") or urllib.parse.urlparse(c.get("careers_url", "")).netloc
+    site = c.get("site") or c.get("slug")
+    # public job page: .../sites/<site>/job/<Id>
+    apply_base = c.get("apply_base") or \
+        f"https://{host}/hcmUI/CandidateExperience/en/sites/{site}/job"
+    base = f"https://{host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
+    limit = c.get("limit", 200)
+    max_pages = c.get("max_pages", 8)     # newest 1600 postings is plenty for a radar
+    out, offset = [], 0
+    for _ in range(max_pages):
+        d = get_json(f"{base}?onlyData=true&expand=requisitionList.secondaryLocations"
+                     f"&finder=findReqs;siteNumber={site},limit={limit},offset={offset},"
+                     f"sortBy=POSTING_DATES_DESC")
+        items = d.get("items") or []
+        reqs = items[0].get("requisitionList", []) if items else []
+        if not reqs:
+            break
+        for r in reqs:
+            out.append(_job(
+                "oraclecloud", c["name"], r.get("Id"), r.get("Title"),
+                r.get("PrimaryLocation"),
+                f"{apply_base.rstrip('/')}/{r.get('Id')}",
+                iso(r.get("PostedDate")),
+                strip_html(r.get("ShortDescriptionStr", "")),
+                r.get("JobFunction") or r.get("Department"),
+            ))
+        offset += len(reqs)
+        if offset >= (items[0].get("TotalJobsCount") or 0):
+            break
+    return out
+
+
+def ats_eightfold(c):
+    """Eightfold talent-intelligence careers API.
+       Config needs host (e.g. hsbc.eightfold.ai) + domain (e.g. hsbc.com).
+       Eightfold caps a page at 10 postings regardless of `num`, so big tenants
+       (HSBC ~1500 roles) need many pages. Set "search": "India" to filter
+       server-side to India and pull the whole India set in ~20 pages."""
+    host = c.get("host") or urllib.parse.urlparse(c.get("careers_url", "")).netloc
+    domain = c.get("domain")
+    loc = urllib.parse.quote(c.get("search", ""))
+    max_pages = c.get("max_pages", 20)
+    out, start = [], 0
+    for _ in range(max_pages):
+        d = get_json(f"https://{host}/api/apply/v2/jobs?domain={domain}"
+                     f"&start={start}&num=100&sort_by=relevance"
+                     + (f"&location={loc}" if loc else ""))
+        pos = d.get("positions") or []
+        if not pos:
+            break
+        for p in pos:
+            out.append(_job(
+                "eightfold", c["name"], p.get("id"), p.get("name"),
+                p.get("location") or ", ".join(p.get("locations") or []),
+                p.get("canonicalPositionUrl"),
+                iso(p.get("t_create")),
+                strip_html(p.get("job_description", "")),
+                p.get("department"),
+            ))
+        start += len(pos)
+        if start >= (d.get("count") or 0):
+            break
+    return out
+
+
+def ats_keka(c):
+    """Keka Hire hosted career site (popular with Indian startups).
+       Config needs tenant + board (the embed GUID from the careers page).
+       Feed: https://{tenant}.keka.com/careers/api/embedjobs/default/active/{board}"""
+    tenant = c.get("tenant") or \
+        urllib.parse.urlparse(c.get("careers_url", "")).netloc.split(".")[0]
+    board = c.get("board") or c.get("slug")
+    d = get_json(f"https://{tenant}.keka.com/careers/api/embedjobs/default/active/{board}")
+    jobs = d if isinstance(d, list) else d.get("jobs", [])
+    out = []
+    for j in jobs:
+        locs = j.get("jobLocations") or []
+        loc = locs[0] if locs else {}
+        where = ", ".join(x for x in [loc.get("city") or loc.get("name"),
+                                      loc.get("countryName")] if x)
+        out.append(_job(
+            "keka", c["name"], j.get("id"), j.get("title"), where,
+            f"https://{tenant}.keka.com/careers/jobdetails/{j.get('id')}",
+            iso(j.get("publishedOn")),
+            strip_html(j.get("description", "")),
+            j.get("departmentName"),
+        ))
+    return out
+
+
 ADAPTERS = {
     "greenhouse": ats_greenhouse,
     "lever": ats_lever,
@@ -299,6 +393,9 @@ ADAPTERS = {
     "recruitee": ats_recruitee,
     "workable": ats_workable,
     "workday": ats_workday,
+    "oraclecloud": ats_oraclecloud,
+    "eightfold": ats_eightfold,
+    "keka": ats_keka,
 }
 
 
